@@ -25,9 +25,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Dynamic;
+using System.Linq;
 
-namespace DynamicDictionary
+namespace System.Dynamic
 {
     /// <summary>
     /// A dynamic dictionary allowing case-insensitive access and returns null when accessing non-existent properties.
@@ -47,26 +47,80 @@ namespace DynamicDictionary
     /// </example>
     public class DynamicDictionary : DynamicObject, IDictionary<string, object>
     {
-        private readonly IDictionary<string, object> _dictionary = new DefaultValueDictionary<string, object>( StringComparer.InvariantCultureIgnoreCase );
+        private readonly IDictionary<string, object> dictionary;
 
-        #region DynamicObject Overrides
+        #region [-- Constructors --]
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DynamicDictionary"/> class using <see cref="StringComparer.InvariantCultureIgnoreCase"/> for comparing keys.
+        /// </summary>
+        public DynamicDictionary()
+        {
+            this.dictionary = new DefaultValueDictionary<string, object>(StringComparer.InvariantCultureIgnoreCase);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DynamicDictionary"/> class using the specified <paramref name="comparer"/> for comparing keys.
+        /// </summary>
+        /// <param name="comparer">The <see cref="StringComparer"/> to use when comparing keys, or null to use <see cref="StringComparer.InvariantCultureIgnoreCase"/>.</param>
+        public DynamicDictionary(StringComparer comparer)
+        {
+            if(comparer == null)
+                comparer = StringComparer.OrdinalIgnoreCase;
+
+            this.dictionary = new DefaultValueDictionary<string, object>(comparer);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DynamicDictionary"/> class copying keys and value from <paramref name="dictionary"/> using <see cref="StringComparer.InvariantCultureIgnoreCase"/> for comparing keys.
+        /// </summary>
+        /// <param name="dictionary">The dictionary to copy keys and values from.</param>
+        /// <exception cref="System.ArgumentNullException">dictionary</exception>
+        public DynamicDictionary(IDictionary<string, object> dictionary)
+        {
+            if(dictionary == null)
+                throw new ArgumentNullException(nameof(dictionary));
+
+            this.dictionary = new DefaultValueDictionary<string, object>(dictionary, StringComparer.InvariantCultureIgnoreCase);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DynamicDictionary" /> class copying keys and value from <paramref name="dictionary" /> using the specified <paramref name="comparer" /> for comparing keys.
+        /// </summary>
+        /// <param name="dictionary">The dictionary to copy keys and values from.</param>
+        /// <param name="comparer">The <see cref="StringComparer" /> to use when comparing keys, or null to use <see cref="StringComparer.InvariantCultureIgnoreCase" />.</param>
+        /// <exception cref="System.ArgumentNullException">dictionary</exception>
+        public DynamicDictionary(IDictionary<string, object> dictionary, StringComparer comparer)
+        {
+            if(dictionary == null)
+                throw new ArgumentNullException(nameof(dictionary));
+
+            if(comparer == null)
+                comparer = StringComparer.OrdinalIgnoreCase;
+
+            this.dictionary = new DefaultValueDictionary<string, object>(dictionary, comparer);
+        }
+
+        #endregion
+
+        #region [-- DynamicObject Overrides --]
 
         public override bool TryGetMember( GetMemberBinder binder, out object result )
         {
-            result = _dictionary[ binder.Name ];
+            result = dictionary[ binder.Name ];
 
             return true;
         }
 
         public override bool TrySetMember( SetMemberBinder binder, object value )
         {
-            if ( _dictionary.ContainsKey( binder.Name ) )
+            if ( dictionary.ContainsKey( binder.Name ) )
             {
-                _dictionary[ binder.Name ] = value;
+                dictionary[ binder.Name ] = value;
             }
             else
             {
-                _dictionary.Add( binder.Name, value );
+                dictionary.Add( binder.Name, value );
             }
 
             return true;
@@ -74,9 +128,9 @@ namespace DynamicDictionary
 
         public override bool TryInvokeMember( InvokeMemberBinder binder, object[] args, out object result )
         {
-            if ( _dictionary.ContainsKey( binder.Name ) && _dictionary[ binder.Name ] is Delegate )
+            if ( dictionary.ContainsKey( binder.Name ) && dictionary[ binder.Name ] is Delegate )
             {
-                var delegateValue = _dictionary[ binder.Name ] as Delegate;
+                var delegateValue = dictionary[ binder.Name ] as Delegate;
 
                 result = delegateValue.DynamicInvoke( args );
 
@@ -86,38 +140,38 @@ namespace DynamicDictionary
             return base.TryInvokeMember( binder, args, out result );
         }
 
-        #endregion DynamicObject Overrides
+        #endregion
 
-        #region IDictionary<string,object> Members
+        #region [-- IDictionary<string,object> Members --]
 
         public void Add( string key, object value )
         {
-            _dictionary.Add( key, value );
+            dictionary.Add( key, value );
         }
 
         public bool ContainsKey( string key )
         {
-            return _dictionary.ContainsKey( key );
+            return dictionary.ContainsKey( key );
         }
 
         public ICollection<string> Keys
         {
-            get { return _dictionary.Keys; }
+            get { return dictionary.Keys; }
         }
 
         public bool Remove( string key )
         {
-            return _dictionary.Remove( key );
+            return dictionary.Remove( key );
         }
 
         public bool TryGetValue( string key, out object value )
         {
-            return _dictionary.TryGetValue( key, out value );
+            return dictionary.TryGetValue( key, out value );
         }
 
         public ICollection<object> Values
         {
-            get { return _dictionary.Values; }
+            get { return dictionary.Values; }
         }
 
         public object this[ string key ]
@@ -126,213 +180,224 @@ namespace DynamicDictionary
             {
                 object value = null;
 
-                _dictionary.TryGetValue( key, out value );
+                dictionary.TryGetValue( key, out value );
 
                 return value;
             }
-            set { _dictionary[ key ] = value; }
+            set { dictionary[ key ] = value; }
         }
 
         #endregion IDictionary<string,object> Members
 
-        #region ICollection<KeyValuePair<string,object>> Members
+        #region [-- ICollection<KeyValuePair<string,object>> Members --]
 
         public void Add( KeyValuePair<string, object> item )
         {
-            _dictionary.Add( item );
+            dictionary.Add( item );
         }
 
         public void Clear()
         {
-            _dictionary.Clear();
+            dictionary.Clear();
         }
 
         public bool Contains( KeyValuePair<string, object> item )
         {
-            return _dictionary.Contains( item );
+            return dictionary.Contains( item );
         }
 
         public void CopyTo( KeyValuePair<string, object>[] array, int arrayIndex )
         {
-            _dictionary.CopyTo( array, arrayIndex );
+            dictionary.CopyTo( array, arrayIndex );
         }
 
         public int Count
         {
-            get { return _dictionary.Count; }
+            get { return dictionary.Count; }
         }
 
         public bool IsReadOnly
         {
-            get { return _dictionary.IsReadOnly; }
+            get { return dictionary.IsReadOnly; }
         }
 
         public bool Remove( KeyValuePair<string, object> item )
         {
-            return _dictionary.Remove( item );
+            return dictionary.Remove( item );
         }
 
-        #endregion ICollection<KeyValuePair<string,object>> Members
+        #endregion
 
-        #region IEnumerable<KeyValuePair<string,object>> Members
+        #region [-- IEnumerable<KeyValuePair<string,object>> Members --]
 
         public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
-            return _dictionary.GetEnumerator();
+            return dictionary.GetEnumerator();
         }
 
-        #endregion IEnumerable<KeyValuePair<string,object>> Members
+        #endregion
 
-        #region IEnumerable Members
+        #region [-- IEnumerable Members --]
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return _dictionary.GetEnumerator();
+            return dictionary.GetEnumerator();
         }
 
-        #endregion IEnumerable Members
+        #endregion
+    }
+}
 
-        #region Nested Types
+namespace System.Collections.Generic
+{
+    /// <summary>
+    /// A dictionary that returns the default value when accessing keys that do not exist in the dictionary.
+    /// </summary>
+    public class DefaultValueDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+    {
+        private readonly IDictionary<TKey, TValue> dictionary;
+
+        #region [-- Constructors --]
 
         /// <summary>
-        /// A dictionary that returns the default value when accessing keys that do not exist in the dictionary.
+        /// Initializes a new instance of the <see cref="DefaultValueDictionary{TKey, TValue}"/> class.
         /// </summary>
-        public class DefaultValueDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+        public DefaultValueDictionary()
         {
-            private readonly IDictionary<TKey, TValue> _dictionary;
-
-            #region Constructors
-
-            public DefaultValueDictionary()
-            {
-                _dictionary = new Dictionary<TKey, TValue>();
-            }
-
-            /// <summary>
-            /// Initializes with an existing dictionary.
-            /// </summary>
-            /// <param name="dictionary"></param>
-            public DefaultValueDictionary( IDictionary<TKey, TValue> dictionary )
-            {
-                _dictionary = dictionary;
-            }
-
-            /// <summary>
-            /// Initializes using the given equality comparer.
-            /// </summary>
-            /// <param name="comparer"></param>
-            public DefaultValueDictionary( IEqualityComparer<TKey> comparer )
-            {
-                _dictionary = new Dictionary<TKey, TValue>( comparer );
-            }
-
-            #endregion Constructors
-
-            #region IDictionary<string,TValue> Members
-
-            public void Add( TKey key, TValue value )
-            {
-                _dictionary.Add( key, value );
-            }
-
-            public bool ContainsKey( TKey key )
-            {
-                return _dictionary.ContainsKey( key );
-            }
-
-            public ICollection<TKey> Keys
-            {
-                get { return _dictionary.Keys; }
-            }
-
-            public bool Remove( TKey key )
-            {
-                return _dictionary.Remove( key );
-            }
-
-            public bool TryGetValue( TKey key, out TValue value )
-            {
-                return _dictionary.TryGetValue( key, out value );
-            }
-
-            public ICollection<TValue> Values
-            {
-                get { return _dictionary.Values; }
-            }
-
-            public TValue this[ TKey key ]
-            {
-                get
-                {
-                    TValue value;
-
-                    _dictionary.TryGetValue( key, out value );
-
-                    return value;
-                }
-                set { _dictionary[ key ] = value; }
-            }
-
-            #endregion IDictionary<string,TValue> Members
-
-            #region ICollection<KeyValuePair<string,TValue>> Members
-
-            public void Add( KeyValuePair<TKey, TValue> item )
-            {
-                _dictionary.Add( item );
-            }
-
-            public void Clear()
-            {
-                _dictionary.Clear();
-            }
-
-            public bool Contains( KeyValuePair<TKey, TValue> item )
-            {
-                return _dictionary.Contains( item );
-            }
-
-            public void CopyTo( KeyValuePair<TKey, TValue>[] array, int arrayIndex )
-            {
-                _dictionary.CopyTo( array, arrayIndex );
-            }
-
-            public int Count
-            {
-                get { return _dictionary.Count; }
-            }
-
-            public bool IsReadOnly
-            {
-                get { return _dictionary.IsReadOnly; }
-            }
-
-            public bool Remove( KeyValuePair<TKey, TValue> item )
-            {
-                return _dictionary.Remove( item );
-            }
-
-            #endregion ICollection<KeyValuePair<TKey,TValue>> Members
-
-            #region IEnumerable<KeyValuePair<TKey,TValue>> Members
-
-            public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
-            {
-                return _dictionary.GetEnumerator();
-            }
-
-            #endregion IEnumerable<KeyValuePair<TKey,TValue>> Members
-
-            #region IEnumerable Members
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return _dictionary.GetEnumerator();
-            }
-
-            #endregion IEnumerable Members
+            dictionary = new Dictionary<TKey, TValue>();
         }
 
-        #endregion Nested Types
+        /// <summary>
+        /// Initializes with an existing dictionary.
+        /// </summary>
+        /// <param name="dictionary"></param>
+        public DefaultValueDictionary(IDictionary<TKey, TValue> dictionary)
+        {
+            this.dictionary = dictionary.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+
+        /// <summary>
+        /// Initializes using the given equality comparer.
+        /// </summary>
+        /// <param name="comparer"></param>
+        public DefaultValueDictionary(IEqualityComparer<TKey> comparer)
+        {
+            dictionary = new Dictionary<TKey, TValue>(comparer);
+        }
+
+        /// <summary>
+        /// Initializes with an existing dictionary.
+        /// </summary>
+        /// <param name="dictionary"></param>
+        public DefaultValueDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer)
+        {
+            this.dictionary = dictionary.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, comparer);
+        }
+
+        #endregion
+
+        #region [-- IDictionary<string,TValue> Members --]
+
+        public void Add(TKey key, TValue value)
+        {
+            dictionary.Add(key, value);
+        }
+
+        public bool ContainsKey(TKey key)
+        {
+            return dictionary.ContainsKey(key);
+        }
+
+        public ICollection<TKey> Keys
+        {
+            get { return dictionary.Keys; }
+        }
+
+        public bool Remove(TKey key)
+        {
+            return dictionary.Remove(key);
+        }
+
+        public bool TryGetValue(TKey key, out TValue value)
+        {
+            return dictionary.TryGetValue(key, out value);
+        }
+
+        public ICollection<TValue> Values
+        {
+            get { return dictionary.Values; }
+        }
+
+        public TValue this[TKey key]
+        {
+            get
+            {
+                TValue value;
+
+                dictionary.TryGetValue(key, out value);
+
+                return value;
+            }
+            set { dictionary[key] = value; }
+        }
+
+        #endregion
+
+        #region [-- ICollection<KeyValuePair<string,TValue>> Members --]
+
+        public void Add(KeyValuePair<TKey, TValue> item)
+        {
+            dictionary.Add(item);
+        }
+
+        public void Clear()
+        {
+            dictionary.Clear();
+        }
+
+        public bool Contains(KeyValuePair<TKey, TValue> item)
+        {
+            return dictionary.Contains(item);
+        }
+
+        public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+        {
+            dictionary.CopyTo(array, arrayIndex);
+        }
+
+        public int Count
+        {
+            get { return dictionary.Count; }
+        }
+
+        public bool IsReadOnly
+        {
+            get { return dictionary.IsReadOnly; }
+        }
+
+        public bool Remove(KeyValuePair<TKey, TValue> item)
+        {
+            return dictionary.Remove(item);
+        }
+
+        #endregion
+
+        #region [-- IEnumerable<KeyValuePair<TKey,TValue>> Members --]
+
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        {
+            return dictionary.GetEnumerator();
+        }
+
+        #endregion
+
+        #region [-- IEnumerable Members --]
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return dictionary.GetEnumerator();
+        }
+
+        #endregion
     }
 }

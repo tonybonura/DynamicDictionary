@@ -7,7 +7,7 @@
     <ProjectGuid>{CF85E9A2-1971-4A98-B5D2-E6CD184EEF3F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DynamicDictionary</RootNamespace>
+    <RootNamespace>System.Dynamic</RootNamespace>
     <AssemblyName>DynamicDictionary</AssemblyName>
     <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
