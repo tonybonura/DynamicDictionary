@@ -87,5 +87,22 @@ namespace System.Dynamic.UnitTests
 
             Assert.IsTrue(obj.Customer.FirstName == "Clark");
         }
+
+        [TestMethod]
+        public void Initialized_With_An_Existing_Dynamic_Object()
+        {
+            dynamic expando = new ExpandoObject();
+
+            expando.Name = "Clark Kent";
+            expando.Age = 42;
+
+            dynamic dynDict = new DynamicDictionary(expando);
+
+            Assert.AreEqual(expando.Name, dynDict.Name);
+
+            expando.Name = "Supermn";
+
+            Assert.AreNotEqual(expando.Name, dynDict.Name);
+        }
     }
 }
